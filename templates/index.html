@@ -4,13 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>CodeCon</title>
-
-    <!-- Load Mermaid.js from CDN -->
-    <script type="module">
-        import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs";
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <script>
+        // Initialize Mermaid.js
         mermaid.initialize({ startOnLoad: true });
-    </script>
 
+        function renderMermaid() {
+            const mermaidCode = document.getElementById('mermaid_input').value; // Get the Mermaid syntax
+            const mermaidOutput = document.getElementById('mermaid_flowchart'); // Flowchart container
+            
+            mermaidOutput.innerHTML = ''; // Clear previous output
+
+            // Create a new div for the Mermaid content
+            const diagramContainer = document.createElement('div');
+            diagramContainer.className = 'mermaid';
+            diagramContainer.innerHTML = mermaidCode; // Set the Mermaid code
+            mermaidOutput.appendChild(diagramContainer); // Append to the output container
+
+            mermaid.contentLoaded(); // Notify Mermaid to render the new diagram
+        }
+
+        function convertCode() {
+            const cProgram = document.getElementById('c_program').value;
+
+            fetch('/convert', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    'c_program': cProgram
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Display the raw AI response in the textarea
+                document.getElementById('ai_response').value = data.response;
+            })
+            .catch(error => console.error('Error:', error));
+        }
+    </script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,14 +52,11 @@
         .container {
             display: flex;
             flex-direction: column;
-            align-items: center; /* Center align items */
+            align-items: center;
         }
-        .form-group {
+        .form-group, .output-container, .mermaid-render-container {
+            width: 100%;
             margin-bottom: 20px;
-            width: 100%; /* Full width */
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start; /* Align items to the start */
         }
         textarea {
             width: 100%;
@@ -34,7 +64,8 @@
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            resize: none; /* Prevent resizing */
+            resize: none;
+            font-family: monospace;
         }
         button {
             margin: 20px 0;
@@ -45,26 +76,14 @@
             border-radius: 5px;
             cursor: pointer;
         }
-        button:disabled {
-            background-color: #ccc;
-        }
-        .output-container {
-            display: flex; /* Align outputs side by side */
-            justify-content: space-between;
-            width: 100%; /* Full width */
-        }
         .output-box {
-            width: 45%; /* Adjust width of output boxes */
+            width: 100%;
             height: 300px;
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
             background-color: #f9f9f9;
-            overflow-y: auto; /* Allow scrolling for long content */
-            margin-top: 20px; /* Space above */
-        }
-        h2 {
-            margin-top: 20px;
+            overflow-y: auto;
         }
     </style>
 </head>
@@ -72,62 +91,31 @@
     <div class="container">
         <h1>Convert C Code to Flowchart & Algorithm</h1>
 
-        <!-- Input Form -->
+        <!-- Input Form for C Program -->
         <div class="form-group">
             <label for="c_program">Enter C Program:</label>
             <textarea id="c_program" placeholder="Enter your C code here"></textarea>
             <button onclick="convertCode()">Convert</button>
         </div>
 
-        <!-- Output Containers -->
+        <!-- Display the AI Response -->
         <div class="output-container">
-            <!-- Step-by-Step Algorithm Display -->
-            <div id="algorithm" class="output-box">
-                <h2>Step-by-Step Algorithm</h2>
-                <ul id="algorithm_list"></ul>
-            </div>
+            <label for="ai_response">AI Response:</label>
+            <textarea id="ai_response" class="output-box" readonly></textarea>
+        </div>
 
-            <!-- Flowchart Display -->
-            <div id="flowchart" class="output-box">
-                <h2>Flowchart</h2>
-                <div class="mermaid" id="mermaid_flowchart"></div>
-            </div>
+        <!-- Input Form for Mermaid Syntax -->
+        <div class="mermaid-render-container">
+            <label for="mermaid_input">Mermaid Syntax:</label>
+            <textarea id="mermaid_input" placeholder="Enter Mermaid syntax here"></textarea>
+            <button onclick="renderMermaid()">Render Flowchart</button>
+        </div>
+
+        <!-- Rendered Flowchart -->
+        <div class="output-container">
+            <h2>Flowchart</h2>
+            <div id="mermaid_flowchart" class="output-box mermaid"></div>
         </div>
     </div>
-
-    <script>
-        function convertCode() {
-            // Get the C program from the textarea
-            const cProgram = document.getElementById('c_program').value;
-
-            // Send the C program to the backend (using your API)
-            fetch('/convert', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    'c_program': cProgram  // Send the C program code to the backend
-                })
-            })
-            .then(response => response.json())  // Get the JSON response
-            .then(data => {
-                // Step-by-Step Algorithm Display
-                const algorithmList = document.getElementById('algorithm_list');
-                algorithmList.innerHTML = '';  // Clear any previous results
-                data.algorithm.forEach(step => {
-                    const li = document.createElement('li');
-                    li.textContent = step;
-                    algorithmList.appendChild(li);
-                });
-
-                // Flowchart Rendering with Mermaid.js
-                const mermaidFlowchart = document.getElementById('mermaid_flowchart');
-                mermaidFlowchart.innerHTML = data.mermaid_syntax;  // Set the Mermaid syntax
-                mermaid.init();  // Re-initialize Mermaid to render the new diagram
-            })
-            .catch(error => console.error('Error:', error));
-        }
-    </script>
 </body>
 </html>
